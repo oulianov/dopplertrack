@@ -51,6 +51,7 @@ def main(argv=None):
     d.add_argument("--harmonics", type=int, default=1); d.add_argument("--top", type=int, default=20)
     d.add_argument("--window", type=float, default=240.0); d.add_argument("--out", help="write ranked fits as a JSON list")
     d.add_argument("--max-burst", type=float, help="drop events whose surroundings are mostly broadband burst (a passing train or truck sweeps like an aircraft); e.g. 0.15")
+    d.add_argument("--device", help="run the grid searches in torch on this device (mps, cuda or cpu; default: mps, then cuda, then cpu)")
 
     f = sub.add_parser("fit", help="fit an ideal Doppler curve inside a time/frequency window")
     f.add_argument("spec"); f.add_argument("--window", nargs=2, type=float, required=True, metavar=("T0", "T1"))
@@ -58,6 +59,7 @@ def main(argv=None):
     f.add_argument("--harmonics", type=int, default=1); f.add_argument("--out")
     f.add_argument("--objective", choices=("brightness", "contrast"), default="brightness",
                    help="brightness: mean brightness under the curve (the docs/results fits); contrast: the sweep-weighted ridge contrast detect uses")
+    f.add_argument("--device", help="run the grid search in torch on this device (mps, cuda or cpu; default: mps, then cuda, then cpu)")
 
     fe = sub.add_parser("fetch", help="one UTC day of adsb.lol history -> the day index a search runs on (streamed from GitHub, no disk needed)")
     fe.add_argument("date", help="YYYY-MM-DD (UTC day)"); fe.add_argument("out", help="day index .npz")
@@ -107,7 +109,8 @@ def main(argv=None):
     elif a.cmd == "fit":
         from .tracks import fit_event
         sp = Spectrogram.load(a.spec)
-        ef = fit_event(sp, a.window[0], a.window[1], a.band[0], a.band[1], harmonics=a.harmonics, objective=a.objective)
+        ef = fit_event(sp, a.window[0], a.window[1], a.band[0], a.band[1], harmonics=a.harmonics, objective=a.objective,
+                       device=a.device)
         js = json.dumps(ef.to_dict(), indent=1)
         print(js)
         if a.out:
@@ -117,7 +120,7 @@ def main(argv=None):
         from .tracks import detect_events
         sp = Spectrogram.load(a.spec)
         evs = detect_events(sp, a.band[0], a.band[1], harmonics=a.harmonics, top=a.top, window_s=a.window,
-                            progress=lambda k, n: print(f"\r  window {k}/{n}", end="", flush=True))
+                            progress=lambda k, n: print(f"\r  window {k}/{n}", end="", flush=True), device=a.device)
         print()
         if a.max_burst is not None:
             evs = [e for e in evs if e.burst <= a.max_burst]

@@ -36,7 +36,7 @@ def test_fit_cli_defaults_to_brightness(tmp_path, monkeypatch):
     _uniform().save(spec)
     seen = []
 
-    def fake_fit_event(sp, t0, t1, f_lo, f_hi, harmonics=1, objective="contrast"):
+    def fake_fit_event(sp, t0, t1, f_lo, f_hi, harmonics=1, objective="contrast", device=None):
         seen.append(objective)
         return EventFit(t_cpa=0, t_cpa_emit=0, f0=1, v=1, d=1, t_start=t0, t_end=t1, score=0, f_pre=1, f_post=1)
 
